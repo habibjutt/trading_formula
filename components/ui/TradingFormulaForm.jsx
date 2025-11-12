@@ -3,19 +3,43 @@
 import { useState } from 'react';
 
 export default function TradingFormulaForm() {
+  const [orderType, setOrderType] = useState('quantity'); // 'quantity' or 'totalPrice'
   const [coinPrice, setCoinPrice] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
   const [leverage, setLeverage] = useState('5');
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (coinPrice && quantity && leverage) {
+    const coinPriceValue = parseFloat(coinPrice);
+    const leverageValue = parseInt(leverage);
+    
+    if (coinPriceValue && leverageValue) {
+      let calculatedQuantity;
+      let calculatedTotalPrice;
+      
+      if (orderType === 'quantity') {
+        // Order by quantity: user provides quantity, we calculate total price
+        const quantityValue = parseFloat(quantity);
+        if (!quantityValue) return;
+        calculatedQuantity = quantityValue;
+        calculatedTotalPrice = coinPriceValue * quantityValue * leverageValue;
+      } else {
+        // Order by total price: user provides total price, we calculate quantity
+        const totalPriceValue = parseFloat(totalPrice);
+        if (!totalPriceValue) return;
+        calculatedTotalPrice = totalPriceValue;
+        calculatedQuantity = totalPriceValue / (coinPriceValue * leverageValue);
+      }
+      
       setFormData({
-        coinPrice: parseFloat(coinPrice),
-        quantity: parseFloat(quantity),
-        leverage: parseInt(leverage),
+        coinPrice: coinPriceValue,
+        quantity: calculatedQuantity,
+        totalPrice: calculatedTotalPrice,
+        leverage: leverageValue,
+        orderType,
       });
       setSubmitted(true);
     }
@@ -24,7 +48,7 @@ export default function TradingFormulaForm() {
   // Calculate total trade price
   const calculateTotalTradePrice = () => {
     if (!formData) return null;
-    return formData.coinPrice * formData.quantity * formData.leverage;
+    return formData.totalPrice;
   };
 
   // Calculate SL prices for different percentages
@@ -82,11 +106,47 @@ export default function TradingFormulaForm() {
         <div className="col-span-12 md:col-span-2">
           <form onSubmit={handleSubmit}>
             <div className="bg-white dark:bg-black border border-solid border-black/[.08] dark:border-white/[.145] rounded-lg p-6">
-              <h2 className="text-2xl font-semibold mb-6 text-black dark:text-zinc-50">
+              {/* <h2 className="text-2xl font-semibold mb-6 text-black dark:text-zinc-50">
                 Trading Formula Calculator
-              </h2>
+              </h2> */}
               
               <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium mb-3 text-zinc-600 dark:text-zinc-400">
+                    Order By
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="orderType"
+                        value="quantity"
+                        checked={orderType === 'quantity'}
+                        onChange={(e) => {
+                          setOrderType(e.target.value);
+                          setTotalPrice('');
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-black dark:text-zinc-50">Order by Quantity</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="orderType"
+                        value="totalPrice"
+                        checked={orderType === 'totalPrice'}
+                        onChange={(e) => {
+                          setOrderType(e.target.value);
+                          setQuantity('');
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-black dark:text-zinc-50">Order by Total Price</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div>
                   <label 
                     htmlFor="coinPrice" 
@@ -106,24 +166,45 @@ export default function TradingFormulaForm() {
                   />
                 </div>
                 
-                <div>
-                  <label 
-                    htmlFor="quantity" 
-                    className="block text-sm font-medium mb-2 text-zinc-600 dark:text-zinc-400"
-                  >
-                    Quantity
-                  </label>
-                  <input
-                    id="quantity"
-                    type="number"
-                    step="0.0001"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    placeholder="Enter quantity"
-                    required
-                    className="w-full px-4 py-2 rounded-lg border border-solid border-black/[.08] dark:border-white/[.145] bg-white dark:bg-black text-black dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-black/[.08] dark:focus:ring-white/[.145]"
-                  />
-                </div>
+                {orderType === 'quantity' ? (
+                  <div>
+                    <label 
+                      htmlFor="quantity" 
+                      className="block text-sm font-medium mb-2 text-zinc-600 dark:text-zinc-400"
+                    >
+                      Quantity
+                    </label>
+                    <input
+                      id="quantity"
+                      type="number"
+                      step="0.0001"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      placeholder="Enter quantity"
+                      required
+                      className="w-full px-4 py-2 rounded-lg border border-solid border-black/[.08] dark:border-white/[.145] bg-white dark:bg-black text-black dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-black/[.08] dark:focus:ring-white/[.145]"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label 
+                      htmlFor="totalPrice" 
+                      className="block text-sm font-medium mb-2 text-zinc-600 dark:text-zinc-400"
+                    >
+                      Total Price
+                    </label>
+                    <input
+                      id="totalPrice"
+                      type="number"
+                      step="0.0001"
+                      value={totalPrice}
+                      onChange={(e) => setTotalPrice(e.target.value)}
+                      placeholder="Enter total price"
+                      required
+                      className="w-full px-4 py-2 rounded-lg border border-solid border-black/[.08] dark:border-white/[.145] bg-white dark:bg-black text-black dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-black/[.08] dark:focus:ring-white/[.145]"
+                    />
+                  </div>
+                )}
                 
                 <div>
                   <label 
@@ -167,11 +248,23 @@ export default function TradingFormulaForm() {
                 <h3 className="text-lg font-semibold text-black dark:text-zinc-50 mb-2">
                   Total Trade Price
                 </h3>
-                <p className="text-2xl font-mono text-black dark:text-zinc-50">
+                <p className="text-2xl font-mono text-black dark:text-zinc-50 mb-3">
                   {totalTradePrice.toFixed(4)}
                 </p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  (Coin Price: {formData.coinPrice} × Quantity: {formData.quantity} × Leverage: {formData.leverage}:1)
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700">
+                    <span className="text-sm font-medium text-green-800 dark:text-green-300 mr-2">Quantity:</span>
+                    <span className="text-lg font-bold font-mono text-green-900 dark:text-green-200">
+                      {formData.quantity.toFixed(4)}
+                    </span>
+                  </span>
+                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3">
+                  {formData.orderType === 'quantity' ? (
+                    <>Coin Price: {formData.coinPrice} × Quantity: {formData.quantity.toFixed(4)} × Leverage: {formData.leverage}:1</>
+                  ) : (
+                    <>Total Price: {formData.totalPrice.toFixed(4)} ÷ (Coin Price: {formData.coinPrice} × Leverage: {formData.leverage}:1) = Quantity: {formData.quantity.toFixed(4)}</>
+                  )}
                 </p>
               </div>
             </div>
